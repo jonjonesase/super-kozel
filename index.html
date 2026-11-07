@@ -31,19 +31,20 @@ body{background:var(--bg2);color:var(--text);font-family:Rubik,system-ui,sans-se
 .b:first-child{margin-left:0}
 .felt{flex:1;position:relative;display:flex;align-items:center;justify-content:center;padding-left:104px;background:radial-gradient(ellipse at 50% 45%,var(--bg) 0,var(--bg2) 100%);border-radius:22px;margin:6px 0;box-shadow:inset 0 0 0 3px rgba(0,0,0,.25)}
 .deck{position:absolute;left:8px;top:50%;width:104px;height:100px;margin-top:-50px}
-.tcard{position:absolute;left:10px;top:12px;width:54px;transform:rotate(90deg)}
-.pile{position:absolute;left:40px;top:10px;width:54px;height:76px}
+.tcard{position:absolute;left:4px;top:12px;width:54px;transform:rotate(90deg)}.tcard.old{opacity:.55}
+.tcard2{position:absolute;left:62px;top:8px;width:54px;transform:rotate(-10deg);z-index:2;box-shadow:0 3px 8px rgba(0,0,0,.45);border-radius:9px}
+.pile{position:absolute;left:58px;top:10px;width:54px;height:76px}
 .pb{position:absolute;width:54px;height:76px;border-radius:8px;background:var(--back);border:3px solid var(--paper);box-sizing:border-box;box-shadow:0 1px 2px rgba(0,0,0,.4)}
-.dcount{position:absolute;left:40px;top:86px;width:54px;text-align:center;font-size:13px;color:var(--mut)}
-#tab{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;min-height:110px}
-.slot{text-align:center;font-size:11px;color:var(--mut);margin:2px 4px}
+.dcount{position:absolute;left:58px;top:86px;width:54px;text-align:center;font-size:13px;color:var(--mut)}
+#tab{display:grid;place-items:center;min-height:130px}
+.slot{grid-area:1/1;position:relative;text-align:center;font-size:11px;color:var(--mut);margin:2px 4px}.slot small{position:absolute;left:-20px;right:-20px;top:100%;margin-top:3px;white-space:nowrap}
 .slot .cards{display:flex;justify-content:center;margin-bottom:3px}.slot .card{width:var(--tw,56px)}.slot .card+.card{margin-left:calc(var(--tw,56px)*-.55)}.cb{background:var(--back);border:3px solid var(--paper);padding:0}
 .card{aspect-ratio:5/7;background:var(--paper);color:var(--ink);border-radius:9px;display:flex;flex-direction:column;justify-content:space-between;padding:4px 6px;box-sizing:border-box;font-weight:700;font-size:16px;line-height:1;user-select:none;box-shadow:0 2px 3px rgba(0,0,0,.35);text-align:left}
 .card b{font-size:26px;align-self:center;margin-bottom:6px}
 .card.red{color:var(--red)}
 .msg{text-align:center;min-height:22px;margin:2px 0 4px;font-size:15px}
 .hand{display:flex;justify-content:center;padding:16px 0 4px;min-height:100px}
-.hand .card{width:62px;margin-left:-14px;position:relative;top:0;cursor:pointer;transition:top .15s;transform-origin:50% 130%}
+.hand .card{width:62px;margin-left:-14px;position:relative;top:0;cursor:pointer;transition:top .22s cubic-bezier(.22,1,.36,1);transform-origin:50% 130%}
 .hand .card:first-child{margin-left:0}
 .hand .card.sel{top:-14px}
 .act{text-align:center;min-height:50px}.act .btn{margin:0 4px}
@@ -104,8 +105,8 @@ function fly(el,from,o={}){
   if(!el||!from)return;
   const to=el.getBoundingClientRect(),own=getComputedStyle(el).transform,ot=own==='none'?'':own;
   const dx=from.left+from.width/2-(to.left+to.width/2),dy=from.top+from.height/2-(to.top+to.height/2);
-  el.animate([{transform:`translate(${dx}px,${dy}px) scale(${from.width/to.width}) ${ot}`},{transform:ot||'none'}],
-    {duration:o.d||400,delay:o.delay||0,easing:'cubic-bezier(.2,.8,.3,1)',fill:'backwards'});
+  el.animate([{transform:`translate(${dx}px,${dy}px) scale(${from.width/to.width}) ${ot}`,opacity:o.fade?0:1},{opacity:1,offset:.2},{transform:ot||'none',opacity:1}],
+    {duration:o.d||520,delay:o.delay||0,easing:'cubic-bezier(.22,1,.36,1)',fill:'backwards'});
 }
 function render(){
   const turn=turnP(),mine=ready&&turn===0;
@@ -114,11 +115,13 @@ function render(){
   $('#sc').innerHTML=sd.map((s,i)=>`<div class="side"><span>${sn(s)}</span><b>${scores[i]}</b></div>`).join('');
   $('#tr').innerHTML=`<b class="${red(trump)?'red':''}">${trump}</b>козырь`;
   $('#seats').innerHTML=[...Array(n).keys()].slice(1).map(p=>`<div class="seat ${turn===p?'on':''}" id="seat${p}"><div class="av">${AV[p]}</div>${nm(p)}<div class="fan">${hands[p].map(()=>'<i class="b"></i>').join('')}</div></div>`).join('');
-  const dk=Math.min(stock.length,8),up=stock.length?(flipped?stock[stock.length-1]:stock[0]):null;
-  $('#deck').innerHTML=up?`<div class="tcard">${card(up)}</div><div class="pile">${Array.from({length:dk},(_,i)=>`<div class="pb" style="left:${-i*1.5}px;top:${-i*1.5}px"></div>`).join('')}</div><div class="dcount">${stock.length}</div>`:`<div class="dcount" style="left:10px;top:40px;width:84px">Колода пуста</div>`;
-  const tot=trick.reduce((a,t)=>a+t.cs.length,0),tw=tot<=4?56:tot<=8?44:tot<=14?34:28;
+  const dk=Math.min(stock.length,8),up=stock.length?stock[0]:null,top=flipped&&stock.length>1?stock[1]:null;
+  $('#deck').innerHTML=up?`<div class="tcard${top?' old':''}">${card(up)}</div><div class="pile">${Array.from({length:dk},(_,i)=>`<div class="pb" style="left:${-i*1.5}px;top:${-i*1.5}px"></div>`).join('')}</div>${top?`<div class="tcard2" id="flipc">${card(top)}</div>`:''}<div class="dcount">${stock.length}</div>`:`<div class="dcount" style="left:10px;top:40px;width:84px">Колода пуста</div>`;
+  const mx=Math.max(0,...trick.map(t=>t.cs.length)),tw=mx<=3?68:mx<=5?56:46;
   $('#tab').style.setProperty('--tw',tw+'px');
-  $('#tab').innerHTML=trick.map(t=>`<div class="slot" style="transform:rotate(${t.rot}deg)"><div class="cards">${t.cs.map(c=>t.down?'<div class="card cb"></div>':card(c)).join('')}</div>${nm(t.p)}</div>`).join('');
+  let dj=0;
+  $('#tab').innerHTML=trick.map((t,k)=>{const off=k===0?'0px,0px':t.down?`${-12-5*dj}px,${-9-4*dj++}px`:`${12+6*(k-1)}px,${14+6*(k-1)}px`;
+    return `<div class="slot" style="z-index:${k===0?1:t.down?0:k+1};transform:translate(${off}) rotate(${t.rot}deg)"><div class="cards">${t.cs.map(c=>t.down?'<div class="card cb"></div>':card(c)).join('')}</div>${k===0?`<small>${nm(t.p)}</small>`:''}</div>`}).join('');
   $('#msg').textContent=fmt(msg)||(!ready?'Раздача…':mine?(extra?'Можете бить дальше: выберите карты или нажмите «Пас»':trick.length?`Выберите карт: ${trick[0].cs.length}. Что не бьёт, закроется`:'Ваш ход: выберите карты и нажмите «Ходить»'):turn>0?nm(turn)+' думает…':'');
   $('#act').innerHTML=mine?(extra?'<button class="btn pass">Пас</button>':'')+(sel.size?'<button class="btn go">Ходить</button>':''):'';
   const k=hands[0].length;
@@ -161,7 +164,7 @@ function play(p,cs,ext=false){
   const from=src.getBoundingClientRect(),down=trick.length>0&&!ext&&!beatsCombo(cs,best().cs);
   hands[p]=hands[p].filter(x=>!cs.includes(x));trick.push({p,cs,down,rot:Math.round(Math.random()*12-6)});
   if(ext){queue=order.slice(1).filter(q=>hands[q].length);extra=false}else queue.shift();
-  render();fly($('#tab').lastElementChild,from,{d:420});next();
+  render();const el=$('#tab').lastElementChild;fly(el,from,{d:560});if(el&&trick.length>1&&!down)el.firstElementChild.animate([{transform:'scale(1.22)'},{transform:'scale(1)'}],{duration:220,delay:400,easing:'cubic-bezier(.3,1.6,.5,1)',fill:'backwards'});next();
 }
 function next(){
   if(queue.length){const p=queue[0];if(!hum(p))setTimeout(()=>play(p,bot(hands[p])),750);return}
@@ -177,19 +180,20 @@ function resolve(){extra=false;
   tp[w.p]+=sum;tc[w.p]+=all.length;leader=w.p;
   msg=`${T(w.p)} берёт взятку (+${sum})`;render();
   const tr=(w.p===0?$('#hand'):$('#seat'+w.p)).getBoundingClientRect();
-  [...$('#tab').children].forEach(el=>{const r=el.getBoundingClientRect();
-    el.animate([{transform:el.style.transform,opacity:1},{transform:`translate(${tr.left+tr.width/2-(r.left+r.width/2)}px,${tr.top+tr.height/2-(r.top+r.height/2)}px) scale(.4)`,opacity:0}],{duration:450,delay:300,easing:'ease-in',fill:'forwards'})});
+  [...$('#tab').children].forEach((el,i)=>{const r=el.getBoundingClientRect();
+    el.animate([{transform:el.style.transform,opacity:1},{transform:`translate(${tr.left+tr.width/2-(r.left+r.width/2)}px,${tr.top+tr.height/2-(r.top+r.height/2)}px) scale(.4)`,opacity:0}],{duration:650,delay:350+i*70,easing:'cubic-bezier(.65,0,.35,1)',fill:'forwards'})});
   setTimeout(()=>{
-    const f=deckRect(),pushed=[];trick=[];msg='';
+    const f=deckRect(),pushed=[];let flipNow=false;trick=[];msg='';
     for(let go=true;go&&stock.length;){go=false;
       for(let k=0;k<n;k++){const p=(leader+k)%n;
         if(hands[p].length<6&&stock.length){const c=stock.pop();hands[p].push(c);pushed.push({p,c});drawn++;go=true;
-          if(drawn>=6&&!flipped&&stock.length){flipped=true;trump=stock[stock.length-1].s;msg='Перевёрнута карта, новый козырь '+trump}}}}
+          if(drawn>=6&&!flipped&&stock.length>1){const fc=stock.pop();stock.splice(1,0,fc);flipped=true;trump=fc.s;flipNow=true;msg='Новый козырь '+trump+' (козырь меняется один раз)'}}}}
     if(hands.every(h=>!h.length))return endRound();
     setOrder();render();
-    pushed.forEach(({p,c},j)=>fly(p===0?$('#hand').children[hands[0].indexOf(c)]:$('#seat'+p+' .fan').children[hands[p].indexOf(c)],f,{delay:j*90,d:420}));
-    setTimeout(next,Math.min(pushed.length,12)*90+350);
-  },850);
+    pushed.forEach(({p,c},j)=>fly(p===0?$('#hand').children[hands[0].indexOf(c)]:$('#seat'+p+' .fan').children[hands[p].indexOf(c)],f,{delay:j*110,d:560,fade:true}));
+    if(flipNow)flipAnim();
+    setTimeout(next,Math.min(pushed.length,12)*110+600);
+  },1150);
 }
 function endRound(){
   const sp=sd.map(s=>s.reduce((a,p)=>a+tp[p],0)),sc=sd.map(s=>s.reduce((a,p)=>a+tc[p],0)),pen=sd.map(()=>0);
@@ -209,15 +213,22 @@ function showRound(o,canNext){
   $('#ov').hidden=false;
   const g=$('#go');if(g)g.onclick=()=>o.over?leaveGame():newRound();
 }
+function dealAnim(){const f=deckRect();if(!f)return;
+  hands.forEach((h,p)=>[...(p===0?$('#hand'):$('#seat'+p+' .fan')).children].forEach((el,i)=>fly(el,f,{delay:300+(i*n+p)*110,d:600,fade:true})));
+  const t=$('.tcard');if(t)t.animate([{opacity:0,transform:'rotate(90deg) translateY(-34px)'},{opacity:1,transform:'rotate(90deg)'}],{duration:700,delay:300+6*n*110,easing:'cubic-bezier(.22,1,.36,1)',fill:'backwards'});
+  const pl=$('.pile');if(pl)pl.animate([{transform:'translateX(-7px)'},{transform:'translateX(7px)'},{transform:'translateX(-4px)'},{transform:'none'}],{duration:320,easing:'ease-in-out'});
+}
+function flipAnim(){const fc=$('#flipc'),b=$('#tr b');
+  if(fc)fc.animate([{opacity:0,transform:'rotate(-10deg) translateY(-30px) scale(.7)'},{opacity:1,transform:'rotate(-10deg)'}],{duration:800,delay:200,easing:'cubic-bezier(.22,1,.36,1)',fill:'backwards'});
+  if(b)b.animate([{transform:'scale(1)'},{transform:'scale(1.5)'},{transform:'scale(1)'}],{duration:900,delay:450,easing:'ease-in-out'})}
 function newRound(){
   round++;const d=[];SUITS.forEach(s=>RANKS.forEach(r=>d.push({r,s})));
   for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]]}
   hands=Array.from({length:n},()=>d.splice(-6));stock=d;trump=stock[0].s;drawn=0;flipped=false;ready=false;sel.clear();ovData=null;
   tp=Array(n).fill(0);tc=Array(n).fill(0);leader=Math.floor(Math.random()*n);trick=[];msg='';setOrder();
   $('#ov').hidden=true;render();
-  const f=deckRect();
-  hands.forEach((h,p)=>[...(p===0?$('#hand'):$('#seat'+p+' .fan')).children].forEach((el,i)=>fly(el,f,{delay:(i*n+p)*70,d:450})));
-  setTimeout(()=>{ready=true;render();next()},6*n*70+500);
+  dealAnim();
+  setTimeout(()=>{ready=true;render();next()},300+6*n*110+1100);
 }
 function begin(k){mode='bots';mySeat=0;names=[];H=new Set([0]);n=k;sd=n===4?[[0,2],[1,3]]:[...Array(n).keys()].map(i=>[i]);scores=sd.map(()=>0);round=0;newRound()}
 function leaveGame(){stopNet();if(cur){api({op:'leave'});cur=null}es?lobbyView():menu()}
@@ -227,7 +238,7 @@ function push(force){
   if(mode!=='host')return;
   const c=x=>x.r+x.s,L=(p,s)=>(p-s+n)%n,T2=(a,s)=>n===4?a.map((_,t)=>a[(t+s)%2]):a.map((_,q)=>a[(q+s)%n]);
   for(const s of H){if(!s)continue;
-    const o={h:hands[s].map(c),nn:hands.map((_,q)=>hands[(q+s)%n].length),st:stock.length,f:stock.length?c(stock[0]):null,l:flipped&&stock.length?c(stock[stock.length-1]):null,
+    const o={h:hands[s].map(c),nn:hands.map((_,q)=>hands[(q+s)%n].length),st:stock.length,f:stock.length?c(stock[0]):null,l:flipped&&stock.length>1?c(stock[1]):null,
       t:trump,fl:flipped,tr:trick.map(t=>({p:L(t.p,s),cs:t.down?t.cs.map(()=>'??'):t.cs.map(c),d:t.down,rot:t.rot})),
       o:order.map(p=>L(p,s)),q:queue.map(p=>L(p,s)),x:extra,ld:L(leader,s),sc:T2(scores,s),rd:round,rdy:ready,m:msg,nm:names,
       ov:ovData?{sp:T2(ovData.sp,s),pen:T2(ovData.pen,s),tot:T2(ovData.tot,s),over:ovData.over,L:n===4?((ovData.L-s)%2+2)%2:L(ovData.L,s),tie:ovData.tie,r:ovData.r}:null};
@@ -235,15 +246,16 @@ function push(force){
 }
 function onState(d){
   if(mode!=='guest')return;
-  const raw=JSON.stringify(d);if(raw===lastRaw)return;lastRaw=raw;
+  const raw=JSON.stringify(d);if(raw===lastRaw)return;lastRaw=raw;const newR=d.rd!==round,wasF=flipped;
   const P=s=>({r:s.slice(0,-1),s:s.slice(-1)}),ph=()=>({r:'?',s:'?'}),keys=[...sel].map(c=>c.r+c.s);
   names=d.nm;hands=[d.h.map(P),...d.nn.slice(1).map(k=>Array.from({length:k},ph))];
-  stock=Array.from({length:d.st},ph);if(d.st){if(d.f)stock[0]=P(d.f);if(d.l)stock[d.st-1]=P(d.l)}
+  stock=Array.from({length:d.st},ph);if(d.st){if(d.f)stock[0]=P(d.f);if(d.l&&d.st>1)stock[1]=P(d.l)}
   trump=d.t;flipped=d.fl;trick=d.tr.map(t=>({p:t.p,cs:t.cs.map(P),down:t.d,rot:t.rot}));
   order=d.o;queue=d.q;extra=d.x;leader=d.ld;scores=d.sc;round=d.rd;ready=d.rdy;msg=d.m;
   sel.clear();hands[0].forEach(c=>{if(keys.includes(c.r+c.s))sel.add(c)});
   if(d.ov)showRound(d.ov,false);else $('#ov').hidden=true;
   render();
+  if(newR)dealAnim();else if(d.fl&&!wasF)flipAnim();
 }
 function onAction(s,m){
   if(mode!=='host'||!H.has(s)||!ready||turnP()!==s||!m)return;
@@ -310,7 +322,7 @@ function pickBots(){
   $('#ov').querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>begin(+b.dataset.k));on('#bk',menu);
 }
 function rules(){
-  box(`<h2>Правила</h2><p>Раздаётся по 6 карт, козырь открывается из колоды. Ходить можно любой картой или сразу несколькими одной масти либо одного достоинства.</p><p>Остальные отвечают тем же числом карт: бьют картой выше или козырем, а что не бьёт, кладётся рубашкой вверх. Если тот, кто ходил, может побить лучшие карты на столе, круг продолжается.</p><p>Взятку забирает тот, чьи карты лучшие. В конце раунда проигравший получает штраф: 2 очка, если набрал 41 или больше, 4, если меньше, и 6, если не взял ни одной карты. Кто дошёл до 24, тот козёл.</p><button class="btn" id="bk">Назад</button>`);
+  box(`<h2>Правила</h2><p>Раздаётся по 6 карт, последняя карта колоды лежит лицом вверх и задаёт козырь. Когда из колоды возьмут первые 6 карт, рядом откроется вторая козырная карта, и козырь сменится один раз. Ходить можно любой картой или сразу несколькими одной масти либо одного достоинства.</p><p>Остальные отвечают тем же числом карт: бьют картой выше или козырем, а что не бьёт, кладётся рубашкой вверх. Если тот, кто ходил, может побить лучшие карты на столе, круг продолжается.</p><p>Взятку забирает тот, чьи карты лучшие. В конце раунда проигравший получает штраф: 2 очка, если набрал 41 или больше, 4, если меньше, и 6, если не взял ни одной карты. Кто дошёл до 24, тот козёл.</p><button class="btn" id="bk">Назад</button>`);
   on('#bk',menu);
 }
 myId=Math.random().toString(36).slice(2,10);
